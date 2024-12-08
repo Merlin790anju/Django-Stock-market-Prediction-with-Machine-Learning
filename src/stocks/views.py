@@ -119,3 +119,20 @@ def ticker(request):
     return render(request, 'ticker.html', {
         'ticker_list': ticker_list
     })
+
+
+# The Predict Function to implement Machine Learning as well as Plotting
+def predict(request, ticker_value, number_of_days):
+    try:
+        # ticker_value = request.POST.get('ticker')
+        ticker_value = ticker_value.upper()
+        df = yf.download(tickers = ticker_value, period='1d', interval='1m')
+        print("Downloaded ticker = {} successfully".format(ticker_value))
+    except:
+        return render(request, 'API_Down.html', {})
+
+    try:
+        # number_of_days = request.POST.get('days')
+        number_of_days = int(number_of_days)
+    except:
+        return render(request, 'Invalid_Days_Format.html', {})
