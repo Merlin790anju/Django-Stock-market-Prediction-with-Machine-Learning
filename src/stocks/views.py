@@ -151,3 +151,28 @@ def predict(request, ticker_value, number_of_days):
     if number_of_days > 365:
         return render(request, 'Overflow_days.html', {})
     
+
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(x=df.index,
+                open=df['Open'],
+                high=df['High'],
+                low=df['Low'],
+                close=df['Close'], name = 'market data'))
+    fig.update_layout(
+                        title='{} live share price evolution'.format(ticker_value),
+                        yaxis_title='Stock Price (USD per Shares)')
+    fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=15, label="15m", step="minute", stepmode="backward"),
+            dict(count=45, label="45m", step="minute", stepmode="backward"),
+            dict(count=1, label="HTD", step="hour", stepmode="todate"),
+            dict(count=3, label="3h", step="hour", stepmode="backward"),
+            dict(step="all")
+        ])
+        )
+    )
+    fig.update_layout(paper_bgcolor="#14151b", plot_bgcolor="#14151b", font_color="white")
+    plot_div = plot(fig, auto_open=False, output_type='div')
+
