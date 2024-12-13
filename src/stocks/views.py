@@ -207,3 +207,16 @@ def predict(request, ticker_value, number_of_days):
     forecast_prediction = clf.predict(X_forecast)
     forecast = forecast_prediction.tolist()
 
+    # ========================================== Plotting predicted data ======================================
+
+
+    pred_dict = {"Date": [], "Prediction": []}
+    for i in range(0, len(forecast)):
+        pred_dict["Date"].append(dt.datetime.today() + dt.timedelta(days=i))
+        pred_dict["Prediction"].append(forecast[i])
+    
+    pred_df = pd.DataFrame(pred_dict)
+    pred_fig = go.Figure([go.Scatter(x=pred_df['Date'], y=pred_df['Prediction'])])
+    pred_fig.update_xaxes(rangeslider_visible=True)
+    pred_fig.update_layout(paper_bgcolor="#14151b", plot_bgcolor="#14151b", font_color="white")
+    plot_div_pred = plot(pred_fig, auto_open=False, output_type='div')
