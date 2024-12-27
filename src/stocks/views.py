@@ -16,7 +16,7 @@ import yfinance as yf
 import datetime as dt
 import qrcode
 
-from .models import Project
+from .models import Stock
 
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing, model_selection, svm
@@ -110,7 +110,7 @@ def search(request):
 
 def ticker(request):
     # ================================================= Load Ticker Table ================================================
-    ticker_df = pd.read_csv('app/Data/new_tickers.csv') 
+    ticker_df = pd.read_csv('stocks/Data/new_tickers.csv') 
     json_ticker = ticker_df.reset_index().to_json(orient ='records')
     ticker_list = []
     ticker_list = json.loads(json_ticker)
@@ -223,7 +223,7 @@ def predict(request, ticker_value, number_of_days):
 
     # ========================================== Display Ticker Info ==========================================
 
-    ticker = pd.read_csv('app/Data/Tickers.csv')
+    ticker = pd.read_csv('stocks/Data/Tickers.csv')
     to_search = ticker_value
     ticker.columns = ['Symbol', 'Name', 'Last_Sale', 'Net_Change', 'Percent_Change', 'Market_Cap',
                     'Country', 'IPO_Year', 'Volume', 'Sector', 'Industry']
