@@ -20,6 +20,8 @@ from .models import Stock
 
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing, model_selection, svm
+from sklearn.ensemble import RandomForestRegressor
+import ta
 
 
 # Create your views here.
@@ -178,31 +180,51 @@ def predict(request, ticker_value, number_of_days):
 
     # ========================================== Machine Learning ==========================================
 
-
     try:
-        df_ml = yf.download(tickers = ticker_value, period='3mo', interval='1h')
+        # Get more historical data for better training
+        df_ml = yf.download(tickers = ticker_value, period='1y', interval='1h')
     except:
         ticker_value = 'AAPL'
-        df_ml = yf.download(tickers = ticker_value, period='3mo', interval='1m')
+        df_ml = yf.download(tickers = ticker_value, period='1y', interval='1h')
 
-    # Fetching ticker values from Yahoo Finance API 
-    df_ml = df_ml[['Adj Close']]
+    # Feature engineering
+    df_ml['MA5'] = df_ml['Adj Close'].rolling(window=5).mean()
+    df_ml['MA20'] = df_ml['Adj Close'].rolling(window=20).mean()
+    df_ml['RSI'] = ta.momentum.rsi(df_ml['Adj Close'], window=14)
+    df_ml['MACD'] = ta.trend.macd_diff(df_ml['Adj Close'])
+    
+    # Use BollingerBands class instead of bollinger_bands function
+    bb_indicator = ta.volatility.BollingerBands(df_ml['Adj Close'])
+    df_ml['BB_up'] = bb_indicator.bollinger_hband()
+    df_ml['BB_mid'] = bb_indicator.bollinger_mavg() 
+    df_ml['BB_low'] = bb_indicator.bollinger_lband()
+    
+    # Drop NaN values after calculating indicators
+    df_ml = df_ml.dropna()
+
+    # Prepare features and target
     forecast_out = int(number_of_days)
-    df_ml['Prediction'] = df_ml[['Adj Close']].shift(-forecast_out)
-    # Splitting data for Test and Train
-    # X = np.array(df_ml.drop(['Prediction'],1))
-    X = np.array(df_ml.drop(['Prediction'], axis=1))  # Correct axis
-    X = preprocessing.scale(X)
-    X_forecast = X[-forecast_out:]
-    X = X[:-forecast_out]
-    y = np.array(df_ml['Prediction'])
-    y = y[:-forecast_out]
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size = 0.2)
-    # Applying Linear Regression
-    clf = LinearRegression()
-    clf.fit(X_train,y_train)
+    df_ml['Prediction'] = df_ml['Adj Close'].shift(-forecast_out)
+
+    feature_columns = ['Adj Close', 'MA5', 'MA20', 'RSI', 'MACD', 'BB_up', 'BB_low']
+    X = df_ml[feature_columns].values[:-forecast_out]
+    y = df_ml['Prediction'].values[:-forecast_out]
+
+    # Scale features
+    scaler = preprocessing.StandardScaler()
+    X = scaler.fit_transform(X)
+    X_forecast = scaler.transform(df_ml[feature_columns].values[-forecast_out:])
+
+    # Split data with more training data
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.15, random_state=42)
+
+    # Use Random Forest instead of Linear Regression
+    clf = RandomForestRegressor(n_estimators=100, random_state=42)
+    clf.fit(X_train, y_train)
+
     # Prediction Score
     confidence = clf.score(X_test, y_test)
+
     # Predicting for 'n' days stock data
     forecast_prediction = clf.predict(X_forecast)
     forecast = forecast_prediction.tolist()
